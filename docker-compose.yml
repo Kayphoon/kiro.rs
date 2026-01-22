@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  kiro:
+    # 使用 GitHub Container Registry 上的镜像
+    # 镜像由 .github/workflows/docker-build.yaml 自动构建
+    image: ghcr.io/kayphoon/kiro-rs:latest
+    # 如果想本地构建，取消下面一行的注释并注释上面的 image
+    # build: .
+    command: ["./kiro-rs", "-c", "/app/config/config.json"]
+    ports:
+      - "8086:8086"
+    volumes:
+      - ./config.docker.json:/app/config/config.json:ro
+    restart: unless-stopped

@@ -20,9 +20,10 @@ use std::time::Duration;
 use tokio::time::interval;
 use uuid::Uuid;
 
+use super::buffered_stream::BufferedStreamContext;
 use super::converter::{ConversionError, convert_request};
 use super::middleware::AppState;
-use super::stream::{SseEvent, StreamContext};
+use super::stream::SseEvent;
 use super::types::{
     CountTokensRequest, CountTokensResponse, ErrorResponse, MessagesRequest, Model, ModelsResponse,
 };
@@ -215,10 +216,10 @@ async fn handle_stream_request(
     };
 
     // 创建流处理上下文
-    let mut ctx = StreamContext::new_with_thinking(model, input_tokens, thinking_enabled);
+    let mut ctx = BufferedStreamContext::new(model, input_tokens, thinking_enabled);
 
     // 生成初始事件
-    let initial_events = ctx.generate_initial_events();
+    let initial_events = ctx.inner.generate_initial_events();
 
     // 创建 SSE 流
     let stream = create_sse_stream(response, ctx, initial_events);
@@ -244,7 +245,7 @@ fn create_ping_sse() -> Bytes {
 /// 创建 SSE 事件流
 fn create_sse_stream(
     response: reqwest::Response,
-    ctx: StreamContext,
+    ctx: BufferedStreamContext,
     initial_events: Vec<SseEvent>,
 ) -> impl Stream<Item = Result<Bytes, Infallible>> {
     // 先发送初始事件
@@ -280,7 +281,7 @@ fn create_sse_stream(
                                 match result {
                                     Ok(frame) => {
                                         if let Ok(event) = Event::from_frame(frame) {
-                                            let sse_events = ctx.process_kiro_event(&event);
+                                            let sse_events = ctx.process_event(&event);
                                             events.extend(sse_events);
                                         }
                                     }

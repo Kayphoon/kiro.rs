@@ -16,6 +16,7 @@
 //! axum::serve(listener, app).await?;
 //! ```
 
+mod buffered_stream;
 mod converter;
 mod handlers;
 mod middleware;
